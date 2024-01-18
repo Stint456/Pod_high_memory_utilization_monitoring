@@ -1,0 +1,20 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: high-memory-pod
+  namespace: namespaceName
+spec:
+  groups:
+    - name: high-memory-usage-rules
+      rules:
+        - alert: PodMemoryHighUtilization
+          expr: |
+            ((( sum(container_memory_working_set_bytes{image!="",container!="POD", namespace!="kube-system"}) by (namespace,container,pod)  /
+            sum(container_spec_memory_limit_bytes{image!="",container!="POD",namespace!="kube-system"}) by (namespace,container,pod) ) * 100 ) < +Inf ) > 80
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Container name:"{{$labels.container}}" in Pod name:"{{$labels.pod}}" in NameSpace:"{{$labels.namespace}}" is using more than 80% of Memory Limit
+            description: "Namespace: {{$labels.namespace}}\n, Pod name: {{$labels.pod}}\n, Container name: {{$labels.container}}\n"
